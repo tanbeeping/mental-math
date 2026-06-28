@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Daily Reps: Mental Math</title>
 
   <!-- Bootstrap 5.3.8 -->
@@ -190,6 +190,7 @@
       cursor: pointer;
       color: var(--text);
       transition: background 0.1s, transform 0.08s;
+      touch-action: manipulation;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
@@ -213,7 +214,6 @@
     }
 
     .numpad-key.key-check:active  { background: #333333; }
-    .numpad-key.key-negative      { font-size: 1.5rem; }
     .numpad-key:disabled          { opacity: 0.3; cursor: default; transform: none; }
 
     /* ── Stopwatch ── */
@@ -355,7 +355,7 @@
         <button class="numpad-key" onclick="numpadPress('1')">1</button>
         <button class="numpad-key" onclick="numpadPress('2')">2</button>
         <button class="numpad-key" onclick="numpadPress('3')">3</button>
-        <button class="numpad-key key-negative" onclick="numpadPress('-')" title="Negative">±</button>
+        <button class="numpad-key key-action" style="visibility:hidden;" disabled></button>
         <button class="numpad-key" onclick="numpadPress('0')">0</button>
         <button class="numpad-key key-action" onclick="numpadPress('backspace')">⌫</button>
         <!-- Check spans full width -->
@@ -528,14 +528,8 @@
 
       if (key === 'backspace') {
         currentEntry = currentEntry.slice(0, -1);
-      } else if (key === '-') {
-        // Toggle negative sign
-        if (currentEntry.startsWith('-')) currentEntry = currentEntry.slice(1);
-        else if (currentEntry.length > 0) currentEntry = '-' + currentEntry;
       } else {
-        // Limit length to 6 digits (excluding minus)
-        const digits = currentEntry.replace('-', '');
-        if (digits.length >= 6) return;
+        if (currentEntry.length >= 6) return;
         currentEntry += key;
       }
 
@@ -552,7 +546,7 @@
       } else if (state === 'wrong') {
         display.className = 'answer-display is-wrong';
         value.textContent = currentEntry;
-      } else if (currentEntry === '' || currentEntry === '-') {
+      } else if (currentEntry === '') {
         display.className = 'answer-display';
         value.textContent = currentEntry || '';
       } else {
@@ -569,7 +563,6 @@
 
       if (e.key >= '0' && e.key <= '9') { numpadPress(e.key); return; }
       if (e.key === 'Backspace')         { numpadPress('backspace'); return; }
-      if (e.key === '-')                 { numpadPress('-'); return; }
       if (e.key === 'Enter')             { submitAnswer(); return; }
     });
 
@@ -613,7 +606,7 @@
     function submitAnswer() {
       if (answered) return;
       const val = parseInt(currentEntry, 10);
-      if (isNaN(val) || currentEntry === '' || currentEntry === '-') return;
+      if (isNaN(val) || currentEntry === '') return;
 
       answered = true;
       const timeSec = stopStopwatch();

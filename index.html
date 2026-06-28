@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Reps: Mental Math</title>
+
+  <!-- Bootstrap 5.3.8 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" />
+  <!-- Fonts: Inter (UI) + JetBrains Mono (numbers) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" />
+
+  <style>
+    /* ── Design tokens ── */
+    :root {
+      --bg:        #ffffff;
+      --surface:   #f5f5f5;
+      --border:    #e8e8e8;
+      --text:      #111111;
+      --muted:     #888888;
+      --accent:    #111111;       /* near-black as the single accent */
+      --correct:   #16a34a;
+      --wrong:     #dc2626;
+      --skip:      #9ca3af;
+      --dot-idle:  #e2e2e2;
+      --dot-cur:   #111111;
+      --radius-sm: 10px;
+      --radius-lg: 16px;
+    }
+
+    /* ── Base ── */
+    body {
+      background: var(--bg);
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Header ── */
+    .app-eyebrow {
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0;
+    }
+
+    .app-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    /* ── Difficulty cards ── */
+    .diff-card {
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 8px;
+      text-align: center;
+      background: var(--bg);
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+
+    .diff-card:hover            { border-color: #aaaaaa; background: var(--surface); }
+    .diff-card.active           { border-color: var(--text); background: var(--text); }
+
+    .diff-card .d-num           { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .diff-card .d-name          { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-top: 2px; }
+    .diff-card .d-desc          { font-size: 0.6rem; color: #bbbbbb; margin-top: 1px; }
+
+    .diff-card.active .d-num,
+    .diff-card.active .d-name,
+    .diff-card.active .d-desc   { color: #ffffff; }
+
+    /* ── Primary button ── */
+    .btn-dark-solid {
+      background: var(--text);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 14px 20px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-dark-solid:hover    { opacity: 0.82; }
+    .btn-dark-solid:disabled { opacity: 0.35; cursor: default; }
+
+    /* ── Ghost / skip button ── */
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 20px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      width: 100%;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-ghost:hover    { border-color: #aaaaaa; color: var(--text); }
+    .btn-ghost:disabled { opacity: 0.3; cursor: default; }
+
+    /* ── Progress dots ── */
+    .dot {
+      height: 5px;
+      border-radius: 3px;
+      flex: 1;
+      background: var(--dot-idle);
+      transition: background 0.2s;
+    }
+
+    .dot.current { background: var(--dot-cur); }
+    .dot.correct { background: var(--correct); }
+    .dot.wrong   { background: var(--wrong); }
+    .dot.skipped { background: var(--skip); }
+
+    /* ── Question surface ── */
+    .question-surface {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .question-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .question-eq {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(2.4rem, 10vw, 4.2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    /* ── Stopwatch ── */
+    .stopwatch {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* ── Answer input ── */
+    .answer-input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    .answer-input:focus        { border-color: var(--text); }
+    .answer-input.is-correct   { border-color: var(--correct); background: #f0fdf4; color: var(--correct); }
+    .answer-input.is-wrong     { border-color: var(--wrong);   background: #fff5f5; color: var(--wrong); }
+
+    /* ── Feedback ── */
+    .feedback {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: center;
+      min-height: 1.2rem;
+      color: var(--muted);
+    }
+
+    .feedback.ok   { color: var(--correct); }
+    .feedback.bad  { color: var(--wrong); }
+    .feedback.grey { color: var(--skip); }
+
+    /* ── Score display ── */
+    .score-hero {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.5rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    /* ── Result badge ── */
+    .result-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      border: 1.5px solid currentColor;
+    }
+
+    .result-badge.great  { color: var(--correct); }
+    .result-badge.good   { color: #2563eb; }
+    .result-badge.ok     { color: #d97706; }
+    .result-badge.more   { color: var(--muted); }
+
+    /* ── Breakdown rows ── */
+    .breakdown-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    .breakdown-row:last-child { border-bottom: none; }
+
+    .bq {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      min-width: 110px;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+
+    .ba { flex: 1; font-weight: 600; }
+    .ba.correct { color: var(--correct); }
+    .ba.wrong   { color: var(--wrong); }
+    .ba.skipped { color: var(--skip); }
+
+    .bt {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* ── Divider ── */
+    .hairline { border-top: 1px solid var(--border); }
+
+    /* ── Breakdown container ── */
+    .breakdown-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container py-5" style="max-width: 520px;">
+
+    <!-- Header — always visible -->
+    <div class="mb-5">
+      <h1 class="app-title mb-1">Daily Reps: Mental Math</h1>
+      <p class="app-eyebrow mb-0">Sharpen your mind. One rep at a time.</p>
+    </div>
+
+    <!-- ══ SETUP SCREEN ══ -->
+    <div id="setupScreen">
+      <p class="mb-2" style="font-size:0.8rem;font-weight:500;color:var(--muted);">Choose difficulty</p>
+      <div class="row g-2 mb-2" id="difficultyGrid"></div>
+      <p class="text-center mb-4" style="font-size:0.78rem;color:var(--muted);" id="levelDesc"></p>
+      <button class="btn-dark-solid" onclick="startGame()">Start 10 reps →</button>
+    </div>
+
+    <!-- ══ GAME SCREEN ══ -->
+    <div id="gameScreen" class="d-none">
+
+      <!-- Meta row -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="mono" style="font-size:0.8rem;color:var(--muted);" id="qcount">1 / 10</span>
+        <span class="stopwatch" id="stopwatch">0.0s</span>
+      </div>
+
+      <!-- Progress dots -->
+      <div class="d-flex gap-1 mb-4" id="dotRow"></div>
+
+      <!-- Question -->
+      <div class="question-surface mb-4">
+        <p class="question-label">Solve</p>
+        <div class="question-eq" id="questionText">?</div>
+      </div>
+
+      <!-- Answer input -->
+      <input
+        id="answerInput"
+        type="number"
+        inputmode="numeric"
+        class="answer-input mb-2"
+        placeholder="Type your answer"
+        autocomplete="off"
+      />
+
+      <!-- Check button -->
+      <button class="btn-dark-solid mb-2" id="submitBtn" onclick="submitAnswer()">Check</button>
+
+      <!-- Skip -->
+      <button class="btn-ghost mb-3" id="skipBtn" onclick="skipQuestion()">Skip this question</button>
+
+      <!-- Feedback -->
+      <p class="feedback" id="feedback"></p>
+    </div>
+
+    <!-- ══ RESULTS SCREEN ══ -->
+    <div id="resultsScreen" class="d-none">
+
+      <div class="text-center mb-4">
+        <div class="mb-3" id="resultBadge"></div>
+        <div class="score-hero" id="scoreBig">0/10</div>
+        <p style="font-size:0.8rem;color:var(--muted);margin-top:6px;" id="timeStat"></p>
+        <p style="font-size:0.85rem;color:var(--muted);margin-top:16px;font-style:italic;">You showed up. Reps done. Keep the streak alive.</p>
+      </div>
+
+      <div class="breakdown-box mb-4" id="breakdown"></div>
+
+      <button class="btn-dark-solid mb-3" onclick="restart()">Try again →</button>
+      <button class="btn-ghost" onclick="changeDifficulty()">Change difficulty</button>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ── Level definitions ──────────────────────────────────────────────
+    const LEVELS = [
+      { num: 1, name: 'Spark',     desc: 'Single-digit + −' },
+      { num: 2, name: 'Pulse',     desc: 'Double-digit + −' },
+      { num: 3, name: 'Volt',      desc: 'Single-digit × ÷' },
+      { num: 4, name: 'Circuit',   desc: 'Double-digit × ÷' },
+      { num: 5, name: 'Surge',     desc: 'Triple-digit + −' },
+      { num: 6, name: 'Overdrive', desc: '4-digit + −' },
+    ];
+
+    // ── State ──────────────────────────────────────────────────────────
+    let selectedLevel = 1;
+    let questions     = [];
+    let currentQ      = 0;
+    let results       = [];   // { correct, skipped, timeSec }
+    let answered      = false;
+    let qStartTime    = 0;
+    let sessionStart  = 0;
+    let swTimer       = null;
+    const TOTAL       = 10;
+
+    // ── Random int helper ──────────────────────────────────────────────
+    function rnd(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // ── Question generator ─────────────────────────────────────────────
+    function genQuestion(level) {
+      let a, b, op, answer, display;
+      switch (level) {
+        case 1:
+          a = rnd(1, 9); b = rnd(1, 9);
+          if (Math.random() < 0.5) { op = '+'; answer = a + b; }
+          else { if (a < b) [a, b] = [b, a]; op = '−'; answer = a - b; }
+          display = `${a} ${op} ${b}`; break;
+
+        case 2:
+          a = rnd(10, 99); b = rnd(10, 99);
+          if (Math.random() < 0.5) { op = '+'; answer = a + b; }
+          else { if (a < b) [a, b] = [b, a]; op = '−'; answer = a - b; }
+          display = `${a} ${op} ${b}`; break;
+
+        case 3:
+          if (Math.random() < 0.5) {
+            a = rnd(2, 9); b = rnd(2, 9); answer = a * b; display = `${a} × ${b}`;
+          } else {
+            b = rnd(2, 9); answer = rnd(2, 9); a = b * answer; display = `${a} ÷ ${b}`;
+          }
+          break;
+
+        case 4:
+          if (Math.random() < 0.5) {
+            a = rnd(10, 25); b = rnd(2, 9); answer = a * b; display = `${a} × ${b}`;
+          } else {
+            b = rnd(2, 9); answer = rnd(10, 25); a = b * answer; display = `${a} ÷ ${b}`;
+          }
+          break;
+
+        case 5:
+          a = rnd(100, 999); b = rnd(100, 999);
+          if (Math.random() < 0.5) { op = '+'; answer = a + b; }
+          else { if (a < b) [a, b] = [b, a]; op = '−'; answer = a - b; }
+          display = `${a} ${op} ${b}`; break;
+
+        case 6:
+          a = rnd(1000, 9999); b = rnd(1000, 9999);
+          if (Math.random() < 0.5) { op = '+'; answer = a + b; }
+          else { if (a < b) [a, b] = [b, a]; op = '−'; answer = a - b; }
+          display = `${a} ${op} ${b}`; break;
+      }
+      return { display, answer };
+    }
+
+    // ── Difficulty grid ────────────────────────────────────────────────
+    function buildDiffGrid() {
+      const grid = document.getElementById('difficultyGrid');
+      grid.innerHTML = '';
+      LEVELS.forEach(lv => {
+        const col = document.createElement('div');
+        col.className = 'col-4';
+        col.innerHTML = `
+          <div class="diff-card ${lv.num === selectedLevel ? 'active' : ''}"
+               onclick="selectLevel(${lv.num})">
+            <div class="d-num">Lv ${lv.num}</div>
+            <div class="d-name">${lv.name}</div>
+            <div class="d-desc">${lv.desc}</div>
+          </div>`;
+        grid.appendChild(col);
+      });
+      updateDesc();
+    }
+
+    function selectLevel(n) {
+      selectedLevel = n;
+      buildDiffGrid();
+    }
+
+    function updateDesc() {
+      const lv = LEVELS[selectedLevel - 1];
+      document.getElementById('levelDesc').textContent = `Level ${lv.num} · ${lv.desc}`;
+    }
+
+    // ── Progress dots ──────────────────────────────────────────────────
+    function buildDots() {
+      const row = document.getElementById('dotRow');
+      row.innerHTML = '';
+      for (let i = 0; i < TOTAL; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot';
+        d.id = `dot-${i}`;
+        row.appendChild(d);
+      }
+    }
+
+    function updateDots() {
+      for (let i = 0; i < TOTAL; i++) {
+        const d = document.getElementById(`dot-${i}`);
+        if (!d) continue;
+        d.className = 'dot';
+        if (i < results.length) {
+          const r = results[i];
+          d.classList.add(r.skipped ? 'skipped' : r.correct ? 'correct' : 'wrong');
+        } else if (i === currentQ) {
+          d.classList.add('current');
+        }
+      }
+    }
+
+    // ── Stopwatch ──────────────────────────────────────────────────────
+    function startStopwatch() {
+      qStartTime = Date.now();
+      clearInterval(swTimer);
+      swTimer = setInterval(() => {
+        const sec = (Date.now() - qStartTime) / 1000;
+        document.getElementById('stopwatch').textContent = sec.toFixed(1) + 's';
+      }, 100);
+    }
+
+    function stopStopwatch() {
+      clearInterval(swTimer);
+      return (Date.now() - qStartTime) / 1000;
+    }
+
+    // ── Game flow ──────────────────────────────────────────────────────
+    function startGame() {
+      questions    = [];
+      results      = [];
+      currentQ     = 0;
+      sessionStart = Date.now();
+      for (let i = 0; i < TOTAL; i++) questions.push(genQuestion(selectedLevel));
+      show('gameScreen');
+      hide('setupScreen');
+      hide('resultsScreen');
+      buildDots();
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      answered = false;
+      const q  = questions[currentQ];
+      document.getElementById('questionText').textContent = `${q.display} = ?`;
+      document.getElementById('qcount').textContent       = `${currentQ + 1} / ${TOTAL}`;
+
+      const input = document.getElementById('answerInput');
+      input.value     = '';
+      input.className = 'answer-input mb-2';
+      input.disabled  = false;
+
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('skipBtn').disabled   = false;
+
+      const fb = document.getElementById('feedback');
+      fb.textContent = '';
+      fb.className   = 'feedback';
+
+      document.getElementById('stopwatch').textContent = '0.0s';
+      updateDots();
+      startStopwatch();
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function submitAnswer() {
+      if (answered) return;
+      const input = document.getElementById('answerInput');
+      const val   = parseInt(input.value, 10);
+      if (isNaN(val)) { input.focus(); return; }
+
+      answered = true;
+      const timeSec = stopStopwatch();
+      const correct = val === questions[currentQ].answer;
+      results.push({ correct, skipped: false, timeSec });
+
+      const fb = document.getElementById('feedback');
+      input.disabled = true;
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('skipBtn').disabled   = true;
+
+      if (correct) {
+        input.classList.add('is-correct');
+        fb.className   = 'feedback ok';
+        fb.textContent = '✓ Correct';
+      } else {
+        input.classList.add('is-wrong');
+        fb.className   = 'feedback bad';
+        fb.textContent = `✗ Answer: ${questions[currentQ].answer}`;
+      }
+
+      updateDots();
+      setTimeout(nextQuestion, 1100);
+    }
+
+    function skipQuestion() {
+      if (answered) return;
+      answered = true;
+      const timeSec = stopStopwatch();
+      results.push({ correct: false, skipped: true, timeSec });
+
+      const fb = document.getElementById('feedback');
+      fb.className   = 'feedback grey';
+      fb.textContent = `Skipped — answer: ${questions[currentQ].answer}`;
+
+      document.getElementById('answerInput').disabled = true;
+      document.getElementById('submitBtn').disabled   = true;
+      document.getElementById('skipBtn').disabled     = true;
+
+      updateDots();
+      setTimeout(nextQuestion, 900);
+    }
+
+    function nextQuestion() {
+      currentQ++;
+      if (currentQ >= TOTAL) { showResults(); return; }
+      loadQuestion();
+    }
+
+    // ── Results ────────────────────────────────────────────────────────
+    function showResults() {
+      clearInterval(swTimer);
+      show('resultsScreen');
+      hide('gameScreen');
+
+      const score    = results.filter(r => r.correct).length;
+      const skipped  = results.filter(r => r.skipped).length;
+      const totalSec = ((Date.now() - sessionStart) / 1000).toFixed(1);
+      const avgSec   = (results.reduce((s, r) => s + r.timeSec, 0) / TOTAL).toFixed(1);
+
+      document.getElementById('scoreBig').textContent = `${score}/10`;
+      document.getElementById('timeStat').textContent =
+        `${totalSec}s total · ${avgSec}s avg · ${skipped} skipped`;
+
+      const badge = document.getElementById('resultBadge');
+      if      (score >= 9) badge.innerHTML = '<span class="result-badge great">Outstanding</span>';
+      else if (score >= 7) badge.innerHTML = '<span class="result-badge good">Nice work</span>';
+      else if (score >= 5) badge.innerHTML = '<span class="result-badge ok">Keep going</span>';
+      else                 badge.innerHTML = '<span class="result-badge more">Keep training</span>';
+
+      const bd = document.getElementById('breakdown');
+      bd.innerHTML = '';
+      questions.forEach((q, i) => {
+        const r   = results[i];
+        const row = document.createElement('div');
+        row.className = 'breakdown-row';
+
+        let baClass, baText;
+        if (r.skipped)      { baClass = 'skipped'; baText = 'Skipped'; }
+        else if (r.correct) { baClass = 'correct'; baText = `= ${q.answer}`; }
+        else                { baClass = 'wrong';   baText = `✗  ${q.answer}`; }
+
+        row.innerHTML = `
+          <span class="bq">${q.display}</span>
+          <span class="ba ${baClass} flex-grow-1">${baText}</span>
+          <span class="bt">${r.timeSec.toFixed(1)}s</span>`;
+        bd.appendChild(row);
+      });
+    }
+
+    // ── Navigation ─────────────────────────────────────────────────────
+    function restart() {
+      hide('resultsScreen');
+      startGame();
+    }
+
+    function changeDifficulty() {
+      hide('resultsScreen');
+      show('setupScreen');
+      buildDiffGrid();
+    }
+
+    // ── Screen helpers ─────────────────────────────────────────────────
+    function show(id) { document.getElementById(id).classList.remove('d-none'); }
+    function hide(id) { document.getElementById(id).classList.add('d-none'); }
+
+    // ── Enter key submits ──────────────────────────────────────────────
+    document.getElementById('answerInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitAnswer();
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────
+    buildDiffGrid();
+  </script>
+</body>
+</html>

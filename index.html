@@ -199,7 +199,7 @@
 
     .numpad-key.key-action {
       font-family: 'Inter', sans-serif;
-      font-size: 0.8rem;
+      font-size: 1.25rem;
       font-weight: 600;
       color: var(--muted);
       background: var(--surface);
@@ -325,6 +325,44 @@
     .text-link:disabled { opacity: 0.3; cursor: default; }
     .text-link.danger:hover { color: var(--wrong); }
 
+    /* ── Countdown overlay ── */
+    #countdownOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+
+    #countdownOverlay.d-none { display: none !important; }
+
+    .countdown-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+      animation: countdown-pop 0.4s ease-out;
+    }
+
+    .countdown-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+
+    @keyframes countdown-pop {
+      0%   { transform: scale(1.4); opacity: 0; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
     /* ── Breakdown container ── */
     .breakdown-box {
       border: 1px solid var(--border);
@@ -335,6 +373,12 @@
 </head>
 
 <body>
+  <!-- Countdown overlay -->
+  <div id="countdownOverlay" class="d-none">
+    <div class="countdown-num" id="countdownNum">3</div>
+    <div class="countdown-label">Get ready</div>
+  </div>
+
   <div class="container py-4" style="max-width: 420px;">
 
     <!-- Header — always visible -->
@@ -598,18 +642,55 @@
       if (e.key === 'Enter')             { submitAnswer(); return; }
     });
 
-    // ── Game flow ──────────────────────────────────────────────────────
+    // ── Countdown then start ───────────────────────────────────────────
     function startGame() {
       questions    = [];
       results      = [];
       currentQ     = 0;
-      sessionStart = Date.now();
       for (let i = 0; i < TOTAL; i++) questions.push(genQuestion(selectedLevel));
       show('gameScreen');
       hide('setupScreen');
       hide('resultsScreen');
       buildDots();
-      loadQuestion();
+      runCountdown(3, () => {
+        sessionStart = Date.now();
+        loadQuestion();
+      });
+    }
+
+    function runCountdown(from, onDone) {
+      const overlay = document.getElementById('countdownOverlay');
+      const numEl   = document.getElementById('countdownNum');
+      let count = from;
+
+      // Disable numpad during countdown
+      document.querySelectorAll('.numpad-key').forEach(k => k.disabled = true);
+      document.getElementById('skipBtn').disabled = true;
+      document.getElementById('endBtn').disabled  = true;
+
+      function tick() {
+        numEl.style.animation = 'none';
+        // Force reflow to restart animation
+        void numEl.offsetWidth;
+        numEl.style.animation = '';
+
+        if (count > 0) {
+          overlay.classList.remove('d-none');
+          numEl.textContent = count;
+          count--;
+          setTimeout(tick, 900);
+        } else {
+          numEl.textContent = 'Go!';
+          numEl.style.color = '#16a34a';
+          setTimeout(() => {
+            overlay.classList.add('d-none');
+            numEl.style.color = '';
+            onDone();
+          }, 600);
+        }
+      }
+
+      tick();
     }
 
     function loadQuestion() {
